@@ -39,6 +39,24 @@ public sealed class InMemoryProjectRepository(InMemoryStore store) : IProjectRep
         }
     }
 
+    public Task<Project?> RenameAsync(int id, string name, CancellationToken ct)
+    {
+        lock (store.Sync)
+        {
+            var index = store.Projects.FindIndex(p => p.Id == id);
+
+            if (index < 0)
+            {
+                return Task.FromResult<Project?>(null);
+            }
+
+            var updated = store.Projects[index] with { Name = name };
+            store.Projects[index] = updated;
+
+            return Task.FromResult<Project?>(updated);
+        }
+    }
+
     public Task<bool> DeleteAsync(int id, CancellationToken ct)
     {
         lock (store.Sync)
@@ -54,6 +72,7 @@ public sealed class InMemoryProjectRepository(InMemoryStore store) : IProjectRep
         {
             var today = DateOnly.FromDateTime(DateTime.UtcNow);
             var tasks = store.Tasks.Where(t => t.ProjectId == projectId).ToList();
+
             return Task.FromResult(new ProjectStats(
                 projectId,
                 tasks.Count,
@@ -64,4 +83,3 @@ public sealed class InMemoryProjectRepository(InMemoryStore store) : IProjectRep
         }
     }
 }
-
